@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    control-plane: controller-manager
+  name: activemq-artemis-controller-manager
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      control-plane: controller-manager
+      name: activemq-artemis-operator
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        control-plane: controller-manager
+        name: activemq-artemis-operator
+    spec:
+      containers:
+        - args:
+            - --zap-log-level=info
+            - --zap-encoder=console
+            - --zap-time-encoding=iso8601
+            - --leader-elect
+          command:
+            - /home/activemq-artemis-operator/bin/entrypoint
+          env:
+            - name: OPERATOR_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.labels['name']
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: ENABLE_WEBHOOKS
+              value: "false"
+          {{- if .Values.operator.extraEnv }}
+          {{- range $envVal := .Values.operator.extranv }}
+            - name: {{ $envVal.name }}
+              value: {{ $envVal.value }}
+          {{- end }}
+          {{- end }}
+          image: {{ .Values.operator.image.id }}:{{ .Values.operator.image.tag }}
+          imagePullPolicy: {{ .Values.operator.image.pullPolicy}}
+          {{- if .Values.operator.image.pullSecrets }}
+          imagePullSecrets:
+          {{- range $ips := .Values.operator.image.pullSecrets }}
+            -name: {{ $ips.name }}
+          {{- end }}
+          {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          name: manager
+          ports:
+            - containerPort: 8383
+              name: http-metrics
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            runAsNonRoot: true
+            seccompProfile:
+              type: RuntimeDefault
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      serviceAccountName: activemq-artemis-controller-manager
+      terminationGracePeriodSeconds: 10
