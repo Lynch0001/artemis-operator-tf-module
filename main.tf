@@ -13,10 +13,10 @@ resource "rancher2_namespace" "artemis" {
 }
 
 resource "helm_release" "artemis-operator" {
-  depends_on = [rancher2_namespace.artemis.id]
+  depends_on = [rancher2_namespace.artemis]
   name       = "artemis-operator"
   chart      = "./charts/artemis-operator"
-
+  namespace = rancher2_namespace.artemis.name
   values = [
     "./charts/artemis-operator/values.yaml",
     var.extra_values
