@@ -1,5 +1,7 @@
 # Artemis Operator Base Values file
 
+namespace: ""
+
 operator:
   image:
     # operator.image.id is the repository/image_name for the Artemis Operator image

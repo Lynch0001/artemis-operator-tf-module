@@ -1,5 +1,5 @@
 data "rancher2_cluster" "cluster" {
-  name = var.cluster_name
+  name = var.cluster
 }
 
 data "rancher2_project" "artemis" {
@@ -7,13 +7,13 @@ data "rancher2_project" "artemis" {
   cluster_id = data.rancher2_cluster.cluster.id
 }
 
-data "rancher2_namespace" "artemis" {
+resource "rancher2_namespace" "artemis" {
   name = var.namespace
   project_id = data.rancher2_project.artemis.id
 }
 
-resource "helm_release" "artemis" {
-  depends_on = [data.rancher2_namespace.artemis]
+resource "helm_release" "artemis-operator" {
+  depends_on = [rancher2_namespace.artemis.id]
   name       = "artemis-operator"
   chart      = "./charts/artemis-operator"
 
